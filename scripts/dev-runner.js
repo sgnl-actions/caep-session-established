@@ -1,54 +1,59 @@
 #!/usr/bin/env node
 
 /**
- * Development runner for testing scripts locally
+ * Development runner for testing the CAEP Session Established transmitter locally.
+ * This will fail without a real crypto context, but demonstrates the expected parameters.
  */
 
 import script from '../src/script.mjs';
 
 const mockContext = {
-  env: {
-    ENVIRONMENT: 'development'
+  environment: {
+    ADDRESS: 'https://receiver.example.com/.well-known/ssf'
   },
   secrets: {
-    API_KEY: 'dev-test-key-123456'
+    BEARER_AUTH_TOKEN: 'dev-test-token'
   },
-  outputs: {},
-  partial_results: {},
-  current_step: 'start'
+  crypto: {
+    signJWT: async (payload, header) => {
+      console.log('Mock signJWT called with:', JSON.stringify({ payload, header }, null, 2));
+      return 'mock-signed-jwt-token';
+    }
+  }
 };
 
 const mockParams = {
-  target: 'dev-test@example.com',
-  action: 'create',
-  options: ['notify', 'audit'],
-  dry_run: false
+  subject: '{"format":"email","email":"user@example.com"}',
+  audience: 'https://receiver.example.com',
+  fp_ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+  acr: 'urn:mace:incommon:iap:silver',
+  amr: '["pwd","otp","mfa"]',
+  ext_id: 'saml-session-abc123',
+  initiating_entity: 'user',
+  reason_admin: '{"en":"User authenticated via SSO"}'
 };
 
 async function runDev() {
-  console.log('🚀 Running job script in development mode...\n');
-
-  console.log('📋 Parameters:', JSON.stringify(mockParams, null, 2));
-  console.log('🔧 Context:', JSON.stringify(mockContext, null, 2));
+  console.log('Running CAEP Session Established transmitter in development mode...\n');
+  console.log('Parameters:', JSON.stringify(mockParams, null, 2));
   console.log('\n' + '='.repeat(50) + '\n');
 
   try {
     const result = await script.invoke(mockParams, mockContext);
     console.log('\n' + '='.repeat(50));
-    console.log('✅ Job completed successfully!');
-    console.log('📤 Result:', JSON.stringify(result, null, 2));
+    console.log('Completed successfully!');
+    console.log('Result:', JSON.stringify(result, null, 2));
   } catch (error) {
     console.log('\n' + '='.repeat(50));
-    console.error('❌ Job failed:', error.message);
+    console.error('Failed:', error.message);
 
     if (script.error) {
-      console.log('\n🔄 Attempting error recovery...');
+      console.log('\nAttempting error recovery...');
       try {
         const recovery = await script.error({ ...mockParams, error }, mockContext);
-        console.log('✅ Recovery successful!');
-        console.log('📤 Recovery result:', JSON.stringify(recovery, null, 2));
+        console.log('Recovery result:', JSON.stringify(recovery, null, 2));
       } catch (recoveryError) {
-        console.error('❌ Recovery failed:', recoveryError.message);
+        console.error('Recovery failed:', recoveryError.message);
       }
     }
   }

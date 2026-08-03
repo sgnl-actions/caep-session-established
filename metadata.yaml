@@ -59,7 +59,7 @@ inputs:
     description: Entity that initiated the session establishment (admin, user, policy, system)
     required: false
     validation:
-      enum: ["admin", "user", "policy", "system"]
+      max: 100
 
   reason_admin:
     type: text
